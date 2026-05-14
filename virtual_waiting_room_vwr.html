@@ -1,0 +1,533 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --c-bg: #0a0d14;
+    --c-surface: #111520;
+    --c-border: #1e2535;
+    --c-border2: #2a3550;
+    --c-text: #e2e8f0;
+    --c-muted: #64748b;
+    --c-green: #22d3a5;
+    --c-amber: #f59e0b;
+    --c-red: #ef4444;
+    --c-blue: #60a5fa;
+    --c-purple: #a78bfa;
+    --c-green-dim: rgba(34,211,165,0.12);
+    --c-amber-dim: rgba(245,158,11,0.12);
+    --c-red-dim: rgba(239,68,68,0.12);
+    --c-blue-dim: rgba(96,165,250,0.12);
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  .grid-bg {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(96,165,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(96,165,250,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; padding: 20px; max-width: 900px; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--c-blue), var(--c-purple)); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .title { font-family: var(--font-display); font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .subtitle { font-size: 11px; color: var(--c-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .status-pill { display: flex; align-items: center; gap: 6px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 20px; padding: 6px 12px; font-size: 11px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-green); box-shadow: 0 0 8px var(--c-green); animation: pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* Cards grid */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 10px; padding: 14px; position: relative; overflow: hidden; }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:2px 2px 0 0; }
+  .card.green::before { background: var(--c-green); }
+  .card.amber::before { background: var(--c-amber); }
+  .card.red::before { background: var(--c-red); }
+  .card.blue::before { background: var(--c-blue); }
+  .card-label { font-size: 10px; color: var(--c-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .card-value { font-family: var(--font-display); font-size: 28px; font-weight: 800; line-height: 1; }
+  .card.green .card-value { color: var(--c-green); }
+  .card.amber .card-value { color: var(--c-amber); }
+  .card.red .card-value { color: var(--c-red); }
+  .card.blue .card-value { color: var(--c-blue); }
+  .card-sub { font-size: 10px; color: var(--c-muted); margin-top: 4px; }
+
+  /* Capacity bar */
+  .capacity-section { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .section-title { font-size: 11px; color: var(--c-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .capacity-bar-track { height: 8px; background: var(--c-border); border-radius: 4px; overflow: hidden; }
+  .capacity-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease, background 0.3s; }
+  .capacity-slots { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+  .slot { width: 28px; height: 28px; border-radius: 5px; border: 1px solid var(--c-border2); background: transparent; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--c-muted); transition: all 0.3s; position: relative; overflow: hidden; }
+  .slot.active { background: var(--c-green-dim); border-color: var(--c-green); color: var(--c-green); }
+  .slot.active::after { content:''; position:absolute; inset:0; background: var(--c-green); opacity:0.08; }
+  .slot-id { font-size: 8px; line-height: 1; text-align: center; }
+
+  /* Two-column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+  /* Queue panel */
+  .panel { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 10px; padding: 14px; }
+  .queue-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .queue-list::-webkit-scrollbar { width: 4px; }
+  .queue-list::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius: 2px; }
+  .queue-item { display: flex; align-items: center; gap: 8px; background: var(--c-border); border-radius: 6px; padding: 7px 10px; border: 1px solid transparent; transition: all 0.3s; }
+  .queue-item.admitted { background: var(--c-green-dim); border-color: var(--c-green); animation: flash-in 0.5s ease; }
+  @keyframes flash-in { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: translateX(0); } }
+  .q-pos { font-size: 10px; color: var(--c-muted); min-width: 18px; }
+  .q-id { font-size: 12px; font-weight: 500; flex: 1; }
+  .q-wait { font-size: 10px; color: var(--c-amber); }
+  .q-badge { font-size: 9px; background: var(--c-amber-dim); color: var(--c-amber); border-radius: 3px; padding: 2px 5px; border: 1px solid var(--c-amber); }
+  .empty-state { color: var(--c-muted); font-size: 11px; text-align: center; padding: 20px 0; }
+
+  /* Live log */
+  .log-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--c-border2); border-radius: 2px; }
+  .log-entry { display: flex; align-items: flex-start; gap: 6px; font-size: 11px; line-height: 1.4; }
+  .log-time { color: var(--c-muted); min-width: 52px; flex-shrink: 0; }
+  .log-msg { flex: 1; }
+  .log-msg.green { color: var(--c-green); }
+  .log-msg.amber { color: var(--c-amber); }
+  .log-msg.red { color: var(--c-red); }
+  .log-msg.blue { color: var(--c-blue); }
+  .log-msg.muted { color: var(--c-muted); }
+
+  /* Controls */
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .btn { font-family: var(--font-mono); font-size: 11px; border-radius: 6px; border: 1px solid var(--c-border2); background: var(--c-surface); color: var(--c-text); padding: 7px 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .btn:hover { border-color: var(--c-blue); color: var(--c-blue); }
+  .btn.primary { background: var(--c-blue); border-color: var(--c-blue); color: #fff; font-weight: 500; }
+  .btn.primary:hover { background: #3b82f6; }
+  .btn.danger { background: var(--c-red-dim); border-color: var(--c-red); color: var(--c-red); }
+  .btn.danger:hover { background: rgba(239,68,68,0.25); }
+  .btn.green-btn { background: var(--c-green-dim); border-color: var(--c-green); color: var(--c-green); }
+  .btn.green-btn:hover { background: rgba(34,211,165,0.25); }
+  .speed-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .speed-label { font-size:10px; color:var(--c-muted); text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* Admit timer */
+  .admit-bar-wrap { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .admit-bar-track { flex:1; height:4px; background:var(--c-border); border-radius:2px; overflow:hidden; }
+  .admit-bar-fill { height:100%; background:var(--c-purple); border-radius:2px; transition: width 0.5s linear; }
+  .admit-label { font-size:10px; color:var(--c-purple); min-width:60px; text-align:right; }
+
+  /* Dataset tabs */
+  .tabs { display:flex; gap:6px; margin-bottom:12px; }
+  .tab { font-family:var(--font-mono); font-size:11px; border-radius:5px; border:1px solid var(--c-border); background:transparent; color:var(--c-muted); padding:5px 10px; cursor:pointer; transition:all 0.2s; }
+  .tab.active { background:var(--c-blue-dim); border-color:var(--c-blue); color:var(--c-blue); }
+
+  /* Dataset table */
+  .data-table { width:100%; border-collapse:collapse; font-size:11px; }
+  .data-table th { text-align:left; color:var(--c-muted); text-transform:uppercase; letter-spacing:0.5px; font-size:9px; padding:4px 8px; border-bottom:1px solid var(--c-border); }
+  .data-table td { padding:5px 8px; border-bottom:1px solid rgba(30,37,53,0.5); }
+  .badge { display:inline-block; font-size:9px; border-radius:3px; padding:1px 5px; font-weight:500; }
+  .badge.admitted { background:var(--c-green-dim); color:var(--c-green); border:1px solid var(--c-green); }
+  .badge.queued { background:var(--c-amber-dim); color:var(--c-amber); border:1px solid var(--c-amber); }
+  .badge.timeout { background:var(--c-red-dim); color:var(--c-red); border:1px solid var(--c-red); }
+
+  /* Progress ring */
+  .ring-wrap { display:flex; align-items:center; gap:12px; }
+  .ring-svg { transform:rotate(-90deg); }
+  .ring-info { flex:1; }
+  .ring-label { font-size:10px; color:var(--c-muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .ring-value { font-family:var(--font-display); font-size:22px; font-weight:800; color:var(--c-green); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🚦</div>
+      <div>
+        <div class="title">Virtual Waiting Room</div>
+        <div class="subtitle">Gateway Control Center · v1.0</div>
+      </div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="sys-dot"></div>
+      <span id="sys-status">SYSTEM ONLINE</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn primary" onclick="spawnUser()">➕ Add User</button>
+    <button class="btn green-btn" onclick="surgeSim()">⚡ Traffic Surge</button>
+    <button class="btn danger" onclick="resetAll()">↺ Reset</button>
+    <button class="btn" onclick="loadDatasetA()">📂 Run Dataset A</button>
+    <div class="speed-wrap">
+      <span class="speed-label">Speed</span>
+      <select id="speed-sel" onchange="changeSpeed(this.value)" style="background:var(--c-surface);border:1px solid var(--c-border2);color:var(--c-text);border-radius:5px;padding:4px 8px;font-family:var(--font-mono);font-size:11px;cursor:pointer;">
+        <option value="1">1×</option>
+        <option value="3" selected>3×</option>
+        <option value="10">10×</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="cards">
+    <div class="card green">
+      <div class="card-label">Active Users</div>
+      <div class="card-value" id="m-active">0</div>
+      <div class="card-sub">of 10 max capacity</div>
+    </div>
+    <div class="card amber">
+      <div class="card-label">In Queue</div>
+      <div class="card-value" id="m-queue">0</div>
+      <div class="card-sub">waiting for admission</div>
+    </div>
+    <div class="card blue">
+      <div class="card-label">Total Served</div>
+      <div class="card-value" id="m-served">0</div>
+      <div class="card-sub">admitted sessions</div>
+    </div>
+    <div class="card red">
+      <div class="card-label">Timeouts</div>
+      <div class="card-value" id="m-timeout">0</div>
+      <div class="card-sub">session expired</div>
+    </div>
+  </div>
+
+  <!-- Capacity -->
+  <div class="capacity-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span class="section-title">Server Capacity</span>
+      <span id="cap-pct" style="font-size:12px;color:var(--c-green);font-weight:500;">0 / 10 slots</span>
+    </div>
+    <div class="capacity-bar-track">
+      <div class="capacity-bar-fill" id="cap-bar" style="width:0%;background:var(--c-green);"></div>
+    </div>
+    <div class="capacity-slots" id="slots-wrap"></div>
+    <div class="admit-bar-wrap">
+      <span style="font-size:10px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.5px;min-width:80px;">Next admit</span>
+      <div class="admit-bar-track"><div class="admit-bar-fill" id="admit-bar" style="width:0%"></div></div>
+      <span class="admit-label" id="admit-label">30s</span>
+    </div>
+  </div>
+
+  <!-- Queue + Log -->
+  <div class="two-col">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span class="section-title">Queue (FIFO)</span>
+        <span id="queue-count" style="font-size:10px;color:var(--c-amber);">0 waiting</span>
+      </div>
+      <div class="queue-list" id="queue-list">
+        <div class="empty-state">No users in queue</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span class="section-title">Live Event Log</span>
+        <button class="btn" onclick="clearLog()" style="padding:3px 8px;font-size:9px;">Clear</button>
+      </div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
+
+  <!-- Dataset Tabs -->
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('a',this)">Dataset A — Traffic Surge</button>
+      <button class="tab" onclick="showTab('b',this)">Dataset B — Constraints</button>
+    </div>
+    <div id="tab-a">
+      <table class="data-table" id="dataset-table">
+        <thead><tr><th>Timestamp</th><th>User ID</th><th>Action</th><th>Result</th></tr></thead>
+        <tbody id="dataset-body"></tbody>
+      </table>
+    </div>
+    <div id="tab-b" style="display:none;">
+      <table class="data-table">
+        <thead><tr><th>Parameter</th><th>Value</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--c-blue)">MAX_CAPACITY</td><td style="color:var(--c-green);font-weight:500">10</td><td style="color:var(--c-muted)">Max users allowed simultaneously</td></tr>
+          <tr><td style="color:var(--c-blue)">ADMIT_RATE</td><td style="color:var(--c-green);font-weight:500">2</td><td style="color:var(--c-muted)">Users admitted per 60 seconds</td></tr>
+          <tr><td style="color:var(--c-blue)">SESSION_TIMEOUT</td><td style="color:var(--c-green);font-weight:500">5 min</td><td style="color:var(--c-muted)">Session lifetime before forced exit</td></tr>
+          <tr><td style="color:var(--c-blue)">ADMIT_INTERVAL</td><td style="color:var(--c-green);font-weight:500">30s</td><td style="color:var(--c-muted)">Cadence for admission checks</td></tr>
+          <tr><td style="color:var(--c-blue)">QUEUE_TYPE</td><td style="color:var(--c-green);font-weight:500">FIFO</td><td style="color:var(--c-muted)">First-In First-Out ordering</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MAX_CAPACITY = 10;
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
+const ADMIT_INTERVAL_MS = 30 * 1000;
+const ADMIT_RATE = 1;
+
+let activeUsers = [];
+let queue = [];
+let totalServed = 0;
+let totalTimeouts = 0;
+let userCounter = 0;
+let simTime = new Date('2024-09-01T09:00:00');
+let speedMultiplier = 3;
+let admitTimer = 0;
+let admitMax = ADMIT_INTERVAL_MS;
+let datasetLog = [];
+let tickInterval, sessionInterval, admitInterval, uiInterval;
+
+function fmt(d) {
+  return d.toTimeString().slice(0,8);
+}
+
+function uid() {
+  userCounter++;
+  return 'User_' + String(userCounter).padStart(2,'0');
+}
+
+function log(msg, cls='') {
+  const el = document.getElementById('log-list');
+  const t = fmt(simTime);
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${cls}">${msg}</span>`;
+  el.prepend(div);
+  while(el.children.length > 60) el.removeChild(el.lastChild);
+}
+
+function addToDataset(ts, userId, action, result, resultClass) {
+  const tbody = document.getElementById('dataset-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td style="color:var(--c-muted)">${fmt(ts)}</td><td style="color:var(--c-text)">${userId}</td><td style="color:var(--c-blue)">${action}</td><td><span class="badge ${resultClass}">${result}</span></td>`;
+  tbody.prepend(tr);
+  while(tbody.children.length > 20) tbody.removeChild(tbody.lastChild);
+}
+
+function requestAccess(userId, isDataset=false) {
+  if (activeUsers.length < MAX_CAPACITY) {
+    const session = { id: userId, admittedAt: new Date(simTime), expiresAt: new Date(simTime.getTime() + SESSION_TIMEOUT_MS) };
+    activeUsers.push(session);
+    totalServed++;
+    log(`✓ ${userId} admitted — spot ${activeUsers.length}/${MAX_CAPACITY}`, 'green');
+    addToDataset(simTime, userId, 'Request Access', `Admitted (Spot ${activeUsers.length}/${MAX_CAPACITY})`, 'admitted');
+    return 'admitted';
+  } else {
+    queue.push({ id: userId, joinedAt: new Date(simTime) });
+    const pos = queue.length;
+    log(`⏳ ${userId} queued — position #${pos}`, 'amber');
+    addToDataset(simTime, userId, 'Request Access', `Queued (Position #${pos})`, 'queued');
+    return 'queued';
+  }
+}
+
+function admitFromQueue() {
+  let admitted = 0;
+  while (queue.length > 0 && activeUsers.length < MAX_CAPACITY && admitted < ADMIT_RATE) {
+    const next = queue.shift();
+    activeUsers.push({ id: next.id, admittedAt: new Date(simTime), expiresAt: new Date(simTime.getTime() + SESSION_TIMEOUT_MS) });
+    totalServed++;
+    admitted++;
+    log(`🚀 ${next.id} promoted from queue → live`, 'blue');
+    addToDataset(simTime, next.id, 'Queue Promote', `Admitted (Spot ${activeUsers.length}/${MAX_CAPACITY})`, 'admitted');
+  }
+  if (admitted > 0) renderUI();
+}
+
+function checkSessions() {
+  const before = activeUsers.length;
+  const expired = activeUsers.filter(u => u.expiresAt <= simTime);
+  activeUsers = activeUsers.filter(u => u.expiresAt > simTime);
+  expired.forEach(u => {
+    totalTimeouts++;
+    log(`⌛ ${u.id} session expired — slot freed`, 'muted');
+    addToDataset(simTime, u.id, 'Session Timeout', 'Expired', 'timeout');
+  });
+  if (expired.length > 0) {
+      admitFromQueue();
+  }
+}
+
+function renderUI() {
+  document.getElementById('m-active').textContent = activeUsers.length;
+  document.getElementById('m-queue').textContent = queue.length;
+  document.getElementById('m-served').textContent = totalServed;
+  document.getElementById('m-timeout').textContent = totalTimeouts;
+
+  const pct = (activeUsers.length / MAX_CAPACITY) * 100;
+  const bar = document.getElementById('cap-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct >= 100 ? 'var(--c-red)' : pct >= 70 ? 'var(--c-amber)' : 'var(--c-green)';
+  document.getElementById('cap-pct').textContent = `${activeUsers.length} / ${MAX_CAPACITY} slots`;
+  document.getElementById('cap-pct').style.color = pct >= 100 ? 'var(--c-red)' : pct >= 70 ? 'var(--c-amber)' : 'var(--c-green)';
+
+  // Render slots
+  const wrap = document.getElementById('slots-wrap');
+  wrap.innerHTML = '';
+  for (let i = 0; i < MAX_CAPACITY; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    if (activeUsers[i]) {
+      slot.classList.add('active');
+      slot.innerHTML = `<span class="slot-id">${activeUsers[i].id.replace('User_','U')}</span>`;
+    } else {
+      slot.innerHTML = `<span style="font-size:9px;opacity:0.3">${i+1}</span>`;
+    }
+    wrap.appendChild(slot);
+  }
+
+  // Queue list
+  const ql = document.getElementById('queue-list');
+  document.getElementById('queue-count').textContent = queue.length + ' waiting';
+  if (queue.length === 0) {
+    ql.innerHTML = '<div class="empty-state">Queue is empty</div>';
+  } else {
+    ql.innerHTML = '';
+    queue.forEach((u, i) => {
+      const waitMs = simTime - u.joinedAt;
+      const waitMin = Math.floor(waitMs / 60000);
+      const waitSec = Math.floor((waitMs % 60000) / 1000);
+      const waitStr = waitMin > 0 ? `~${waitMin}m ${waitSec}s` : `~${waitSec}s`;
+      const estAdmit = Math.ceil((i + 1) / ADMIT_RATE) * 0.5;
+      const div = document.createElement('div');
+      div.className = 'queue-item';
+      div.innerHTML = `<span class="q-pos">#${i+1}</span><span class="q-id">${u.id}</span><span class="q-wait">wait ${waitStr}</span><span class="q-badge">~${estAdmit}m</span>`;
+      ql.appendChild(div);
+    });
+  }
+}
+
+function spawnUser() {
+  const id = uid();
+  requestAccess(id);
+  renderUI();
+}
+
+function surgeSim() {
+  log('⚡ TRAFFIC SURGE — 15 users inbound', 'red');
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= 15) { clearInterval(interval); return; }
+    spawnUser();
+    simTime = new Date(simTime.getTime() + 1000);
+    i++;
+  }, 200 / speedMultiplier);
+}
+
+function loadDatasetA() {
+  resetAll();
+  log('📂 Loading Dataset A — Traffic Surge simulation', 'blue');
+  const events = [
+    { delay: 1000, id: 'User_01' }, { delay: 2000, id: 'User_02' },
+    { delay: 3000, id: 'User_03' }, { delay: 3500, id: 'User_04' },
+    { delay: 5000, id: 'User_05' }, { delay: 6000, id: 'User_06' },
+    { delay: 7000, id: 'User_07' }, { delay: 8000, id: 'User_08' },
+    { delay: 9000, id: 'User_09' }, { delay: 10000, id: 'User_10' },
+    { delay: 15000, id: 'User_11' }, { delay: 20000, id: 'User_12' },
+    { delay: 25000, id: 'User_13' }, { delay: 30000, id: 'User_14' },
+    { delay: 35000, id: 'User_15' }, { delay: 40000, id: 'User_16' },
+    { delay: 42000, id: 'User_17' }, { delay: 44000, id: 'User_18' },
+    { delay: 46000, id: 'User_19' }, { delay: 48000, id: 'User_20' },
+    { delay: 50000, id: 'User_21' }, { delay: 52000, id: 'User_22' },
+    { delay: 54000, id: 'User_23' }, { delay: 56000, id: 'User_24' },
+    { delay: 60000, id: 'User_25' },
+  ];
+  events.forEach(ev => {
+    setTimeout(() => {
+      userCounter = Math.max(userCounter, parseInt(ev.id.replace('User_','')));
+      simTime = new Date(simTime.getTime() + 1000);
+      requestAccess(ev.id);
+      renderUI();
+    }, ev.delay / speedMultiplier);
+  });
+}
+
+function resetAll() {
+  activeUsers = [];
+  queue = [];
+  totalServed = 0;
+  totalTimeouts = 0;
+  userCounter = 0;
+  simTime = new Date('2024-09-01T09:00:00');
+  admitTimer = 0;
+  document.getElementById('dataset-body').innerHTML = '';
+  document.getElementById('log-list').innerHTML = '';
+  renderUI();
+  log('↺ System reset — all clear', 'muted');
+}
+
+function clearLog() { document.getElementById('log-list').innerHTML = ''; }
+
+function showTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-a').style.display = tab === 'a' ? '' : 'none';
+  document.getElementById('tab-b').style.display = tab === 'b' ? '' : 'none';
+}
+
+function changeSpeed(v) { speedMultiplier = parseInt(v); }
+
+// Main tick — simulates time passing
+let lastTick = Date.now();
+let admitAccum = 0;
+let sessionAccum = 0;
+
+function tick() {
+  const now = Date.now();
+  const realElapsed = now - lastTick;
+  lastTick = now;
+  const simElapsed = realElapsed * speedMultiplier;
+
+  simTime = new Date(simTime.getTime() + simElapsed);
+  admitAccum += simElapsed;
+  sessionAccum += simElapsed;
+  admitTimer += simElapsed;
+
+  if (admitAccum >= ADMIT_INTERVAL_MS) {
+    admitFromQueue();
+    admitAccum = 0;
+  }
+  if (sessionAccum >= 10000) {
+    checkSessions();
+    sessionAccum = 0;
+  }
+
+  // Admit bar
+  const admitPct = Math.min((admitAccum / ADMIT_INTERVAL_MS) * 100, 100);
+  document.getElementById('admit-bar').style.width = admitPct + '%';
+  const remaining = Math.max(0, Math.ceil((ADMIT_INTERVAL_MS - admitAccum) / 1000));
+  document.getElementById('admit-label').textContent = remaining + 's';
+
+  renderUI();
+}
+
+tickInterval = setInterval(tick, 500);
+
+// Init
+renderUI();
+log('🟢 Virtual Waiting Room online', 'green');
+log('   MAX_CAPACITY=10 · ADMIT_RATE=2/30s · TIMEOUT=5min', 'muted');
+</script>
+</body>
+</html>
